@@ -30,11 +30,24 @@
 						"referenceName": "AzureDataLakeStorage1",
 						"type": "LinkedServiceReference"
 					}
+				},
+				{
+					"dataset": {
+						"referenceName": "EmpSink",
+						"type": "DatasetReference"
+					},
+					"name": "sink2"
 				}
 			],
 			"transformations": [
 				{
 					"name": "exists1"
+				},
+				{
+					"name": "exists2"
+				},
+				{
+					"name": "alterRow1"
 				}
 			],
 			"scriptLines": [
@@ -61,6 +74,10 @@
 				"EmpSourceData, Sink exists(EmpNo == Emp_No,",
 				"     negate:true,",
 				"     broadcast: 'auto')~> exists1",
+				"EmpSourceData, Sink exists(EmpNo == Emp_No,",
+				"     negate:false,",
+				"     broadcast: 'auto')~> exists2",
+				"exists2 alterRow(updateIf(1==1)) ~> alterRow1",
 				"exists1 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
@@ -82,7 +99,30 @@
 				"          UpdatedDate,",
 				"          Emp_No = EmpNo,",
 				"          Emp_Name = EmpName",
-				"     )) ~> EmpSinkData"
+				"     )) ~> EmpSinkData",
+				"alterRow1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          Emp_No as integer,",
+				"          Emp_Name as string,",
+				"          Dep as string,",
+				"          UpdatedDate as date",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:false,",
+				"     updateable:true,",
+				"     upsertable:false,",
+				"     keys:['Emp_No'],",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          Emp_No = EmpNo,",
+				"          Emp_Name = EmpName,",
+				"          Dep,",
+				"          UpdatedDate",
+				"     )) ~> sink2"
 			]
 		}
 	}
