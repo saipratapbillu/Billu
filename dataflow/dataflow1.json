@@ -1,0 +1,89 @@
+{
+	"name": "dataflow1",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "AzureSqlTable1",
+						"type": "DatasetReference"
+					},
+					"name": "EmpSourceData"
+				},
+				{
+					"dataset": {
+						"referenceName": "EmpSink",
+						"type": "DatasetReference"
+					},
+					"name": "Sink"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "EmpSink",
+						"type": "DatasetReference"
+					},
+					"name": "EmpSinkData",
+					"rejectedDataLinkedService": {
+						"referenceName": "AzureDataLakeStorage1",
+						"type": "LinkedServiceReference"
+					}
+				}
+			],
+			"transformations": [
+				{
+					"name": "exists1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          EmpNo as integer,",
+				"          EmpName as string,",
+				"          Dep as string,",
+				"          UpdatedDate as date",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> EmpSourceData",
+				"source(output(",
+				"          Emp_No as integer,",
+				"          Emp_Name as string,",
+				"          Dep as string,",
+				"          UpdatedDate as date",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> Sink",
+				"EmpSourceData, Sink exists(EmpNo == Emp_No,",
+				"     negate:true,",
+				"     broadcast: 'auto')~> exists1",
+				"exists1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          Emp_No as integer,",
+				"          Emp_Name as string,",
+				"          Dep as string,",
+				"          UpdatedDate as date",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          Dep,",
+				"          UpdatedDate,",
+				"          Emp_No = EmpNo,",
+				"          Emp_Name = EmpName",
+				"     )) ~> EmpSinkData"
+			]
+		}
+	}
+}
